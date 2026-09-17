@@ -1,0 +1,32 @@
+name: BUILD-12451 Releasability sandbox deny test
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - ".github/workflows/releasability-dev-role-deny.yml"
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  assume-role-denied:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Attempt to assume releasability role
+        id: assume
+        continue-on-error: true
+        uses: aws-actions/configure-aws-credentials@e6de054238d6b7531b4efff3b6587d9aade6a06c # v6.2.3
+        with:
+          aws-region: eu-central-1
+          role-to-assume: arn:aws:iam::597611216173:role/deploymentroles/ReleasbilityChecksCICDRoleV2
+
+      - name: Assert assume-role was denied
+        run: |
+          echo "assume outcome: ${{ steps.assume.outcome }}"
+          if [[ "${{ steps.assume.outcome }}" == "success" ]]; then
+            echo "::error::Sandbox org unexpectedly assumed ReleasbilityChecksCICDRoleV2"
+            exit 1
+          fi
+          echo "Assume-role denied as expected for non-allowlisted org"
